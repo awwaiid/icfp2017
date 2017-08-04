@@ -23,6 +23,43 @@ multi MAIN(
       die "Error: Expected bot to reply with 'ready'. Got {to-json $response}";
     }
   }
+
+  # repeat for r turns (number of rivers)
+  # keep track of recent move for each player
+  # send recent moves to player
+  # get new move from player
+  # update our own map so that we can give it to them if we want and so we can score the result and so we can turn moves into passes
+
+  my $player_count = @bots.elems;
+  my $river_count = $map<rivers>.elems;
+
+  my @last_move;
+  for ^$player_count -> $id {
+    @last_move[$id] = { pass => { punter => $id } };
+  }
+
+  for ^$river_count -> $move_number {
+    my $player_id = $move_number % $player_count; # maybe wrong for zombies
+    say "Move $move_number player $player_id";
+
+    @bot_apps[$player_id].in.say: to-json({ move => { moves => @last_move } }) :!pretty;
+    my $bot_move = from-json(@bot_apps[$player_id].out.get);
+    @last_move[$player_id] = $bot_move;
+  }
+
+  # Say bye to each bot
+  for @bot_apps.kv -> $id, $bot {
+    $bot.in.say: to-json({
+      stop => {
+        moves => @last_move,
+        scores => []
+      }
+    }) :!pretty;
+    $bot.in.close;
+    $bot.out.close;
+  }
+
+
 }
 
 
