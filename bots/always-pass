@@ -8,4 +8,16 @@ my $id = $greetings<punter>;
 my $map = $greetings<map>;
 say to-json({ ready => $id }) :!pretty;
 
+while True {
+  my $raw_msg = get;
+  # $*ERR.say("RAW: $raw_msg");
+  my $msg = from-json($raw_msg); # Ignore recent move stuff
+
+  if $msg<stop> {
+    $*ERR.say("always-pass bot: exiting");
+    exit;
+  }
+
+  say to-json( { pass => { punter => $id } } ) :!pretty;
+}
 
