@@ -1,28 +1,51 @@
 #!/usr/bin/env perl6
 
+use lib 'lib';
 use JSON::Fast;
+use Msg;
 
-subset FileName of IO() where :e;
+sub initialize-bots($map, @bots) {
+  my @states;
+
+  # Say hi to each bot
+  for @bots.kv -> $id, $bot {
+    my $bot-app = start-bot($bot);
+
+    # P → S {"me" : name}
+    my $identification = client-get($bot-app);
+
+    # S → P {"you" : name}
+    client-send($bot-app, { you => $identification<me> });
+
+    # S → P {"punter" : p, "punters" : n, "map" : map}
+    client-send($bot-app, {
+      punter => $id,
+      map    => $map
+    });
+
+    # P → S {"ready" : p, "state" : state}
+    my $response = client-get($bot-app);
+    if !$response<ready>.defined || $id !== $response<ready> {
+      die "Error: Expected bot to reply with 'ready'. Got {to-json $response}";
+    }
+
+    @states.push($response<state> || {});
+
+    stop-bot($bot-app);
+  }
+
+  @states;
+}
 
 # Run with a map
 multi MAIN(
   IO() :map($mapfile) where :e,
   *@bots
 ) {
-  # Start each bot
-  my @bot_apps = start_bots(@bots);
 
   my $map = from-json($mapfile.slurp);
 
-  # Say hi to each bot
-  for @bot_apps.kv -> $id, $bot {
-    $bot.in.say: to-json {punter => $id, map => $map}, :!pretty;
-    my $response = from-json $bot.out.get;
-    say "Response from $id: {to-json $response}";
-    if !$response<ready>.defined || $id !== $response<ready> {
-      die "Error: Expected bot to reply with 'ready'. Got {to-json $response}";
-    }
-  }
+  my @states = initialize-bots($map, @bots);
 
   # repeat for r turns (number of rivers)
   # keep track of recent move for each player
@@ -40,33 +63,61 @@ multi MAIN(
 
   for ^$river_count -> $move_number {
     my $player_id = $move_number % $player_count; # maybe wrong for zombies
-    say "Move $move_number player $player_id";
 
-    @bot_apps[$player_id].in.say: to-json({ move => { moves => @last_move } }) :!pretty;
-    my $bot_move = from-json(@bot_apps[$player_id].out.get);
-    @last_move[$player_id] = $bot_move;
+    my $bot-app = start-bot(@bots[$player_id]);
+
+    # P → S {"me" : name}
+    my $identification = client-get($bot-app);
+
+    # S → P {"you" : name}
+    client-send($bot-app, { you => $identification<me> });
+
+    # S → P {"move" : {"moves" : moves}, "state" : state}
+    client-send($bot-app, {
+      move => { moves => @last_move },
+      state => @states[$player_id]
+    });
+
+    # P → S move ] {"state" : state}
+    my $move = client-get($bot-app);
+    @states[$player_id] = $move<state> || {};
+    $move<state>:delete; # delete the state
+
+    # todo: see if the move is valid, switch to Pass otherwise
+    @last_move[$player_id] = $move;
+
+    say "Move $move_number player $player_id action { to-json $move, :!pretty }";
+
+    stop-bot($bot-app);
   }
 
-  # Say bye to each bot
-  for @bot_apps.kv -> $id, $bot {
-    $bot.in.say: to-json({
+  for @bots.kv -> $player_id, $bot {
+    my $bot-app = start-bot($bot);
+
+    # P → S {"me" : name}
+    my $identification = client-get($bot-app);
+
+    # S → P {"you" : name}
+    client-send($bot-app, { you => $identification<me> });
+
+    # S → P {"stop" : {"moves" : moves, "scores" : scores}, "state" : state}
+    client-send($bot-app, {
       stop => {
         moves => @last_move,
-        scores => []
-      }
-    }) :!pretty;
-    $bot.in.close;
-    $bot.out.close;
-  }
-
-
-}
-
-
-sub start_bots(@bots) {
-  @bots.map: -> $bot {
-    shell $bot, :in, :out;
+        scores => [], # TODO
+      },
+      state => @states[$player_id]
+    });
+    stop-bot($bot-app);
   }
 }
 
+sub start-bot($bot) {
+  shell "./metabot $bot", :in, :out;
+}
+
+sub stop-bot($bot-app) {
+  $bot-app.in.close;
+  $bot-app.out.close;
+}
 

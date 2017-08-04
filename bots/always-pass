@@ -3,21 +3,14 @@
 use JSON::Fast;
 
 # First ignore the greeting
-my $greetings = from-json(get);
-my $id = $greetings<punter>;
-my $map = $greetings<map>;
-say to-json({ ready => $id }) :!pretty;
+my $command = from-json(get);
 
-while True {
-  my $raw_msg = get;
-  # $*ERR.say("RAW: $raw_msg");
-  my $msg = from-json($raw_msg); # Ignore recent move stuff
-
-  if $msg<stop> {
-    $*ERR.say("always-pass bot: exiting");
-    exit;
-  }
-
-  say to-json( { pass => { punter => $id } } ) :!pretty;
+if $command<stop> {
+  $*ERR.say("always-pass bot: exiting");
+  exit;
 }
+
+my $id = $command<state><punter>;
+
+say to-json( { pass => { punter => $id } } ) :!pretty;
 

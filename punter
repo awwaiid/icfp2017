@@ -1,0 +1,4 @@
+#!/bin/sh
+
+./metabot bots/always-pass
+

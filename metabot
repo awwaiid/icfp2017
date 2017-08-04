@@ -1,0 +1,171 @@
+#!/usr/bin/env perl6
+
+use lib 'lib';
+use JSON::Fast;
+use Msg;
+
+# Run with a map
+multi MAIN($bot) {
+
+  # P → S {"me" : name}
+  # Tell the server who we are
+  server-send({ me => $bot });
+
+  # S → P {"you" : name}
+  server-get;
+
+  my $command = server-get;
+
+  if $command<punter>:exists {
+    initialize-state($command);
+  } elsif $command<move> {
+    get-move($bot, $command);
+  } elsif $command<stop> {
+    stop-game($bot, $command);
+  } else {
+    die "Unknown command { $command.perl }";
+  }
+}
+
+sub initialize-state($command) {
+
+  # S → P {"punter" : p, "punters" : n, "map" : map}
+  # P → S {"ready" : p, "state" : state}
+
+  my $map = $command<map>;
+  my $punter = $command<punter>;
+  my $punters = $command<punters>;
+
+  server-send({
+    ready => $punter,
+    state => {
+      punter => $punter,
+      punters => $punters,
+      map => $map,
+    }
+  });
+
+}
+
+sub get-move($bot, $command) {
+
+  my $state = $command<state>;
+
+  my $bot-app = start-bot($bot);
+  bot-send($bot-app, $command);
+  my $response = bot-get($bot-app);
+  stop-bot($bot-app);
+
+  my $response-state = $response<state> || {};
+
+  # $*ERR.say("command state: { $command<state>.perl }");
+  # $*ERR.say("response state: { $response-state.perl }");
+
+  # Merge states
+  my %merged = (
+    |$command<state>,
+    |$response-state
+  );
+
+  $response<state> = %merged;
+
+  # $*ERR.say("merged state: { $response<state>.perl }");
+
+  server-send($response);
+
+}
+
+sub stop-game($bot, $command) {
+
+  my $bot-app = start-bot($bot);
+  bot-send($bot-app, $command);
+  my $response = bot-get($bot-app);
+  stop-bot($bot-app);
+
+}
+
+  # my %annotated_map = annotate_map($map);
+
+  # my $player_count = @bots.elems;
+  # my $river_count = $map<rivers>.elems;
+
+  # my @last_move;
+  # for ^$player_count -> $id {
+  #   @last_move[$id] = { pass => { punter => $id } };
+  # }
+
+  # for ^$river_count -> $move_number {
+  #   my $player_id = $move_number % $player_count; # maybe wrong for zombies
+
+  #   @bot_apps[$player_id].in.say: to-json({
+  #     move => { moves => @last_move },
+  #     state => {
+  #       map => %annotated_map,
+  #     },
+  #   }) :!pretty;
+  #   my $move = from-json(@bot_apps[$player_id].out.get);
+
+  #   # Trust that their move is fine and shove it into their last move
+  #   # TODO: Verify that the move is good
+  #   # TODO: Update / calculate score
+
+  #   if $move<move> {
+
+  #   }
+  #   @last_move[$player_id] = $move;
+
+  #   say "Move $move_number player $player_id action { to-json $move, :!pretty }";
+  # }
+
+  # # Say bye to each bot
+  # for @bot_apps.kv -> $id, $bot {
+  #   $bot.in.say: to-json({
+  #     stop => {
+  #       moves => @last_move,
+  #       scores => []
+  #     }
+  #   }) :!pretty;
+  #   $bot.in.close;
+  #   $bot.out.close;
+  # }
+
+
+# }
+
+
+# sub start_bots(@bots) {
+  # @bots.map: -> $bot {
+  #   shell $bot, :in, :out;
+  # }
+# }
+
+# # {"punter":0,"source":4,"target":5}
+# sub river-name($river) {
+  # ($river<source>, $river<target>).sort.join('-');
+# }
+
+# # {"sites":[{"id":4},{"id":1},{"id":3},{"id":6},{"id":5},{"id":0},{"id":7},{"id":2}],
+# # "rivers":[{"source":3,"target":4},{"source":0,"target":1},{"source":2,"target":3},
+# # {"source":1,"target":3},{"source":5,"target":6},{"source":4,"target":5},
+# # {"source":3,"target":5},{"source":6,"target":7},{"source":5,"target":7},
+# # {"source":1,"target":7},{"source":0,"target":7},{"source":1,"target":2}],
+# # "mines":[1,5]}}
+# sub annotate_map($map) {
+  # my %annotated_map;
+  # for $map<rivers>.list -> $river {
+  #   my $name = river-name($river);
+  #   %annotated_map<rivers>{$name} = {}
+  # }
+  # # say "Annotated map: { %annotated_map.perl }";
+  # # exit;
+  # return %annotated_map;
+# }
+
+sub start-bot($bot) {
+  shell $bot, :in, :out;
+}
+
+sub stop-bot($bot-app) {
+  $bot-app.in.close;
+  $bot-app.out.close;
+}
