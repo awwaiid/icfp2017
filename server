@@ -1,0 +1,35 @@
+#!/usr/bin/env perl6
+
+use JSON::Fast;
+
+subset FileName of IO() where :e;
+
+# Run with a map
+multi MAIN(
+  IO() :map($mapfile) where :e,
+  *@bots
+) {
+  # Start each bot
+  my @bot_apps = start_bots(@bots);
+
+  my $map = from-json($mapfile.slurp);
+
+  # Say hi to each bot
+  for @bot_apps.kv -> $id, $bot {
+    $bot.in.say: to-json {punter => $id, map => $map}, :!pretty;
+    my $response = from-json $bot.out.get;
+    say "Response from $id: {to-json $response}";
+    if !$response<ready>.defined || $id !== $response<ready> {
+      die "Error: Expected bot to reply with 'ready'. Got {to-json $response}";
+    }
+  }
+}
+
+
+sub start_bots(@bots) {
+  @bots.map: -> $bot {
+    shell $bot, :in, :out;
+  }
+}
+
+
