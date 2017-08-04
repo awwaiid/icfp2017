@@ -1,0 +1,11 @@
+#!/usr/bin/env perl6
+
+use JSON::Fast;
+
+# First ignore the greeting
+my $greetings = from-json(get);
+my $id = $greetings<punter>;
+my $map = $greetings<map>;
+say to-json({ ready => $id }) :!pretty;
+
+
