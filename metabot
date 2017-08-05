@@ -79,7 +79,6 @@ sub stop-game($bot, $command) {
 
   my $bot-app = start-bot($bot);
   bot-send($bot-app, $command);
-  my $response = bot-get($bot-app);
   stop-bot($bot-app);
 
 }
