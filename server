@@ -120,7 +120,7 @@ sub send-score(@bots, $game) {
 }
 
 sub start-bot($bot) {
-  shell "./metabot $bot", :in, :out;
+  shell "./metabot '$bot'", :in, :out;
 }
 
 sub stop-bot($bot-app) {
