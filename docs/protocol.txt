@@ -31,7 +31,6 @@ OR
 
 with no response.
 
-
 Example:
 
 Server sends:
