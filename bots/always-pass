@@ -6,7 +6,7 @@ use JSON::Fast;
 my $command = from-json(get);
 
 if $command<stop> {
-  $*ERR.say("always-pass bot: exiting");
+  # $*ERR.say("always-pass bot: exiting");
   exit;
 }
 

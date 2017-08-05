@@ -1,0 +1,10 @@
+
+
+# Perl6 stuff
+git clone https://github.com/tadzik/rakudobrew ~/.rakudobrew
+export PATH=~/.rakudobrew/bin:$PATH
+rakudobrew build moar 2017.07
+rakudobrew switch moar-2017.07
+rakudobrew build zef
+zef install JSON::Fast
+
