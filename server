@@ -33,6 +33,7 @@ sub initialize-bots($game, @bots) {
     # S → P {"punter" : p, "punters" : n, "map" : map}
     client-send($bot-app, {
       punter => $id,
+      punters => @bots.elems,
       map    => $game.map
     });
 

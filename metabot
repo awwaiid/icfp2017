@@ -29,6 +29,7 @@ multi MAIN($bot) {
 }
 
 sub initialize-state($command) {
+  # $*ERR.say("metabot init command: { $command.perl }");
 
   # S → P {"punter" : p, "punters" : n, "map" : map}
   # P → S {"ready" : p, "state" : state}
@@ -45,13 +46,15 @@ sub initialize-state($command) {
       punters => $punters,
       map => $map,
       claims => $game.rivers,
-      move_num => 0,
+      move_num => $punter,
     }
   });
 
 }
 
 sub get-move($bot, $command) {
+
+  # $*ERR.say("metabot command: { $command.perl }");
 
   my $other-moves = $command<move><moves>;
   my $state = $command<state>;
@@ -63,12 +66,13 @@ sub get-move($bot, $command) {
   }
 
   $command<state><claims> = $game.rivers;
-  $command<state><move_num>++;
 
   my $bot-app = start-bot($bot);
   bot-send($bot-app, $command);
   my $response = bot-get($bot-app);
   stop-bot($bot-app);
+
+  $command<state><move_num> += $command<state><punters>;
 
   my $response-state = $response<state> || {};
 

@@ -13,6 +13,7 @@ my $id = $command<state><punter>;
 
 my $rivers = $command<state><map><rivers>;
 my $claims = $command<state><claims>;
+# $*ERR.say("Move num: { $command<state><move_num> }");
 # $*ERR.say("claims: { $claims.perl }");
 
 my $available-claims = $claims.values.grep({! $^claim<claim>.defined });
