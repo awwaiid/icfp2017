@@ -1,0 +1,28 @@
+# ICFP Contest 2017 - Sideways Spiders!
+
+Participants
+* Brock Wilcox
+* Jason Woys
+
+Languages
+* Rakudo P6
+* PHP
+
+The `server` implements offline-mode in the game and lets us test and tune.
+
+All of our bots have a wrapper-bot, named bots/metabot. This bot:
+
+* Handles run-length json encoding
+* Sets up game-start state
+* Pre-calculates some lookup tables for state, such as river claims
+* When a move is received, calculates the new state from the previous
+* Simplifies handshake to bots
+* Records the real bot's move into the state and sents it to the server
+* Merges in any special state from individual bots
+
+Currently our collection of bots are independent, but we hope to use an
+ensemble style voting or heuristic across several bots to make the best move.
+
+NOTE: Rakudo P6 appears to produce 'precomp' files. Not sure how to turn that
+off, but it isn't state relevant to the game.
+

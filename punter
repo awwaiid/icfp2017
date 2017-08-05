@@ -1,4 +1,6 @@
 #!/bin/sh
 
-./metabot bots/always-pass
+export PATH=~/.rakudobrew/bin:$PATH
+
+bots/metabot bots/phpplayer
 

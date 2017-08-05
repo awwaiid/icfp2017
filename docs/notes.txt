@@ -1,0 +1,12 @@
+
+
+* 2017-08-04 07:59 Fri - Getting ready for problem release!
+* 2017-08-04 08:55 Fri - Read through description, thought out roughly how it works, now we're contemplating how we can approach implementation
+* 2017-08-04 08:59 Fri - Added github-irc integration...
+* 2017-08-04 13:50 Fri - Got back from coffee. Have some plans for building server bridge, simple server, visualizer, series of strategy bots
+* 2017-08-04 14:03 Fri - I am very distracted and stressed by work :(
+* 2017-08-04 14:29 Fri - Pushed up some not working server and always-pass bot
+* 2017-08-04 18:39 Fri - Working on splitting the server simulator from metabot
+* 2017-08-04 18:39 Fri - Jason working on a bot
+* 2017-08-05 00:53 Sat - Went to dinner, talked about bitcoin :)
+* 2017-08-05 00:54 Sat - Conference released an offline-to-online bridge
