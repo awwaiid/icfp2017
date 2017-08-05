@@ -13,9 +13,12 @@ my $id = $command<state><punter>;
 
 my $rivers = $command<state><map><rivers>;
 my $claims = $command<state><claims>;
-# $*ERR.say("Rivers: { $rivers.perl }");
+# $*ERR.say("claims: { $claims.perl }");
 
-my $river = $rivers.pick;
+my $available-claims = $claims.values.grep({! $^claim<claim>.defined });
+# $*ERR.say("Avail: { $available-claims.elems }");
+
+my $river = $available-claims.pick;
 # $*ERR.say("River: { $river.perl }");
 
 say to-json({
