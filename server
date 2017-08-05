@@ -1,6 +1,6 @@
 #!/usr/bin/env perl6
 
-use lib 'lib';
+use lib 'src';
 use JSON::Fast;
 use Msg;
 use Game;
@@ -128,7 +128,7 @@ sub send-score(@bots, $game) {
 }
 
 sub start-bot($bot) {
-  shell "./metabot '$bot'", :in, :out;
+  shell "bots/metabot '$bot'", :in, :out;
 }
 
 sub stop-bot($bot-app) {
