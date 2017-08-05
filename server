@@ -11,7 +11,11 @@ my @states;
 # Run with a map
 multi MAIN( IO() :map($mapfile) where :e, *@bots ) {
   my $map = from-json($mapfile.slurp);
-  my $game = Game.new(map => $map);
+  my $player_count = @bots.elems;
+  my $game = Game.new(
+    map => $map,
+    punters => $player_count
+  );
   @states = initialize-bots($game, @bots);
   play-game(@bots, $game);
   send-score(@bots, $game);
@@ -98,6 +102,10 @@ sub play-game(@bots, $game) {
 }
 
 sub send-score(@bots, $game) {
+  my @scores = $game.score;
+
+  $*ERR.say("Score: { to-json @scores, :!pretty }");
+
   for @bots.kv -> $player_id, $bot {
     my $bot-app = start-bot($bot);
 
@@ -111,7 +119,7 @@ sub send-score(@bots, $game) {
     client-send($bot-app, {
       stop => {
         moves => @last_move,
-        scores => [], # TODO
+        scores => @scores[$player_id]
       },
       state => @states[$player_id]
     });
