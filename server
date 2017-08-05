@@ -3,8 +3,21 @@
 use lib 'lib';
 use JSON::Fast;
 use Msg;
+use Game;
 
-sub initialize-bots($map, @bots) {
+my @last_move;
+my @states;
+
+# Run with a map
+multi MAIN( IO() :map($mapfile) where :e, *@bots ) {
+  my $map = from-json($mapfile.slurp);
+  my $game = Game.new(map => $map);
+  @states = initialize-bots($game, @bots);
+  play-game(@bots, $game);
+  send-score(@bots, $game);
+}
+
+sub initialize-bots($game, @bots) {
   my @states;
 
   # Say hi to each bot
@@ -20,7 +33,7 @@ sub initialize-bots($map, @bots) {
     # S → P {"punter" : p, "punters" : n, "map" : map}
     client-send($bot-app, {
       punter => $id,
-      map    => $map
+      map    => $game.map
     });
 
     # P → S {"ready" : p, "state" : state}
@@ -37,16 +50,7 @@ sub initialize-bots($map, @bots) {
   @states;
 }
 
-# Run with a map
-multi MAIN(
-  IO() :map($mapfile) where :e,
-  *@bots
-) {
-
-  my $map = from-json($mapfile.slurp);
-
-  my @states = initialize-bots($map, @bots);
-
+sub play-game(@bots, $game) {
   # repeat for r turns (number of rivers)
   # keep track of recent move for each player
   # send recent moves to player
@@ -54,9 +58,8 @@ multi MAIN(
   # update our own map so that we can give it to them if we want and so we can score the result and so we can turn moves into passes
 
   my $player_count = @bots.elems;
-  my $river_count = $map<rivers>.elems;
+  my $river_count = $game.map<rivers>.elems;
 
-  my @last_move;
   for ^$player_count -> $id {
     @last_move[$id] = { pass => { punter => $id } };
   }
@@ -83,6 +86,8 @@ multi MAIN(
     @states[$player_id] = $move<state> || {};
     $move<state>:delete; # delete the state
 
+    $game.make-move($player_id, $move);
+
     # todo: see if the move is valid, switch to Pass otherwise
     @last_move[$player_id] = $move;
 
@@ -90,7 +95,9 @@ multi MAIN(
 
     stop-bot($bot-app);
   }
+}
 
+sub send-score(@bots, $game) {
   for @bots.kv -> $player_id, $bot {
     my $bot-app = start-bot($bot);
 
