@@ -15,7 +15,6 @@ debug("START --------------------------------------------");
 while ($line = trim(fgets(STDIN))) {
     debug($line);
     $input = json_decode($line, true);
-    //print_r ($input);
     $map = new Map($input['state']);
     $punter = new Punter();
     $punter->setMap($map);
