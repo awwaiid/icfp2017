@@ -45,7 +45,7 @@ sub initialize-state($command) {
       punter => $punter,
       punters => $punters,
       map => $map,
-      claims => $game.rivers,
+      rivers => $game.rivers,
       move_num => $punter,
     }
   });
@@ -65,7 +65,7 @@ sub get-move($bot, $command) {
     $game.make-move($id, $move);
   }
 
-  $command<state><claims> = $game.rivers;
+  $command<state><rivers> = $game.rivers;
 
   my $bot-app = start-bot($bot);
   bot-send($bot-app, $command);

@@ -5,21 +5,22 @@ use JSON::Fast;
 # First ignore the greeting
 my $command = from-json(get);
 
+# $*ERR.say("random-valid state: { $command<state>.keys.gist }");
+
 if $command<stop> {
   exit;
 }
 
 my $id = $command<state><punter>;
 
-my $rivers = $command<state><map><rivers>;
-my $claims = $command<state><claims>;
+my $rivers = $command<state><rivers>;
 # $*ERR.say("Move num: { $command<state><move_num> }");
-# $*ERR.say("claims: { $claims.perl }");
+# $*ERR.say("rivers: { $rivers.perl }");
 
-my $available-claims = $claims.values.grep({! $^claim<claim>.defined });
-# $*ERR.say("Avail: { $available-claims.elems }");
+my $available-rivers = $rivers.values.grep({! $^claim<claim>.defined });
+# $*ERR.say("Avail: { $available-rivers.elems }");
 
-my $river = $available-claims.pick;
+my $river = $available-rivers.pick;
 # $*ERR.say("River: { $river.perl }");
 
 say to-json({
