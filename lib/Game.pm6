@@ -2,8 +2,13 @@
 class Game {
   has $.map;
   has %.rivers;
+  has $.state;
 
   method TWEAK {
+
+    if $.state<map> {
+      $!map = $.state<map>;
+    }
 
     # Initialize a hash of rivers
     %.rivers = $.map<rivers>.map: -> $river {

@@ -3,6 +3,7 @@
 use lib 'lib';
 use JSON::Fast;
 use Msg;
+use Game;
 
 # Run with a map
 multi MAIN($bot) {
@@ -35,6 +36,7 @@ sub initialize-state($command) {
   my $map = $command<map>;
   my $punter = $command<punter>;
   my $punters = $command<punters>;
+  my $game = Game.new(map => $map);
 
   server-send({
     ready => $punter,
@@ -42,6 +44,8 @@ sub initialize-state($command) {
       punter => $punter,
       punters => $punters,
       map => $map,
+      claims => $game.rivers,
+      move_num => 0,
     }
   });
 
@@ -49,7 +53,17 @@ sub initialize-state($command) {
 
 sub get-move($bot, $command) {
 
+  my $other-moves = $command<move><moves>;
   my $state = $command<state>;
+  my $game = Game.new(state => $state);
+
+  for $other-moves.kv -> $id, $move {
+    # $*ERR.say("Other move: { $move.perl }");
+    $game.make-move($id, $move);
+  }
+
+  $command<state><claims> = $game.rivers;
+  $command<state><move_num>++;
 
   my $bot-app = start-bot($bot);
   bot-send($bot-app, $command);

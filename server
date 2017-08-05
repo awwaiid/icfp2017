@@ -86,12 +86,11 @@ sub play-game(@bots, $game) {
     @states[$player_id] = $move<state> || {};
     $move<state>:delete; # delete the state
 
+    say "Move $move_number player $player_id action { to-json $move, :!pretty }";
     $game.make-move($player_id, $move);
 
     # todo: see if the move is valid, switch to Pass otherwise
     @last_move[$player_id] = $move;
-
-    say "Move $move_number player $player_id action { to-json $move, :!pretty }";
 
     stop-bot($bot-app);
   }
