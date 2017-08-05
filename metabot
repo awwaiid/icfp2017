@@ -54,14 +54,13 @@ sub initialize-state($command) {
 
 sub get-move($bot, $command) {
 
-  # $*ERR.say("metabot command: { $command.perl }");
-
   my $other-moves = $command<move><moves>;
   my $state = $command<state>;
   my $game = Game.new(state => $state);
 
   for $other-moves.kv -> $id, $move {
     # $*ERR.say("Other move: { $move.perl }");
+    next if $id == $state<punter>;
     $game.make-move($id, $move);
   }
 
@@ -73,6 +72,9 @@ sub get-move($bot, $command) {
   stop-bot($bot-app);
 
   $command<state><move_num> += $command<state><punters>;
+
+  $game.make-move($state<punter>, $response);
+  $command<state><rivers> = $game.rivers;
 
   my $response-state = $response<state> || {};
 
