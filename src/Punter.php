@@ -41,7 +41,7 @@ class Punter
             return ['pass' => ["punter" => $this->getMap()->getPunter()]];
         }
         $move = array_merge(["punter" => $this->getMap()->getPunter()], $river->toArray());
-        return ['claim' => $move, 'state' => ['foo' => 'bar']];
+        return ['claim' => $move];
     }
 
     /**

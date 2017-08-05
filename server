@@ -9,11 +9,11 @@ my @last_move;
 my @states;
 
 # Run with a map
-multi MAIN( IO() :map($mapfile) where :e, *@bots ) {
+multi MAIN( IO() :map($mapfile) where :e, :out($outfile), *@bots ) {
   my $map = from-json($mapfile.slurp);
   my $game = Game.new(map => $map);
   @states = initialize-bots($game, @bots);
-  play-game(@bots, $game);
+  play-game(@bots, $game, $outfile);
   send-score(@bots, $game);
 }
 
@@ -51,7 +51,9 @@ sub initialize-bots($game, @bots) {
   @states;
 }
 
-sub play-game(@bots, $game) {
+sub play-game(@bots, $game, $outfile) {
+  my @a = ();
+  spurt $outfile, "";
   # repeat for r turns (number of rivers)
   # keep track of recent move for each player
   # send recent moves to player
@@ -82,6 +84,8 @@ sub play-game(@bots, $game) {
       state => @states[$player_id]
     });
 
+    @a.push: {move => { moves => @last_move }, state => @states[$player_id]}
+
     # P → S move ] {"state" : state}
     my $move = client-get($bot-app);
     @states[$player_id] = $move<state> || {};
@@ -95,6 +99,7 @@ sub play-game(@bots, $game) {
 
     stop-bot($bot-app);
   }
+  spurt $outfile, (to-json @a, :!pretty) ~ "\n", :append;
 }
 
 sub send-score(@bots, $game) {

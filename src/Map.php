@@ -182,7 +182,11 @@ class River
      */
     public function toArray()
     {
-        return ['source' => $this->getSource(), 'target' => $this->getTarget(), 'claim' => $this->getClaim()];
+        if ($this->isClaimed()) {
+            return ['source' => $this->getSource(), 'target' => $this->getTarget(), 'claim' => $this->getClaim()];
+        } else {
+            return ['source' => $this->getSource(), 'target' => $this->getTarget()];
+        }
     }
 
     /**
