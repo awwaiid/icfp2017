@@ -2,5 +2,5 @@
 
 export PATH=~/.rakudobrew/bin:$PATH
 
-./metabot bots/phpplayer
+bots/metabot bots/phpplayer
 
