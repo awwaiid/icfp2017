@@ -22,26 +22,32 @@ my $max-score = -1;
 my $best-river;
 
 sub debug($msg) {
-  # $*ERR.say($msg);
-  # $*ERR.flush;
+  $*ERR.say("less-random: $msg");
+  $*ERR.flush;
 }
 
+my $seen = set();
+
 # $*ERR.say("Looking for best of 5");
-for ^5 {
-  debug("Picking a river");
+for ^100 {
+  # debug("Picking a river");
   my $river = $available-rivers.pick;
   my $river-name = $game.river-name( $river );
-  debug("Marking it claimed");
+
+  next if $river-name (elem) $seen;
+  $seen (|)= $river-name;
+
+  # debug("Marking it claimed");
   $game.rivers{$river-name}<claim> = $id;
-  debug("Calculating new score");
+  # debug("Calculating new score");
   my $score = $game.player-score($id);
-  debug("Checking for improvement");
+  # debug("Checking for improvement");
   if $score > $max-score {
     debug("Found new winner! Score: $score, river { $river.gist }");
     $best-river = $river;
     $max-score = $score;
   }
-  debug("Un-claiming river");
+  # debug("Un-claiming river");
   $game.rivers{$river-name}<claim>:delete;
 }
 
