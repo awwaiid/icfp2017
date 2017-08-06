@@ -1,0 +1,128 @@
+#!/usr/bin/env perl6
+
+use lib 'src';
+use JSON::Fast;
+use Game;
+
+# First ignore the greeting
+my $command = from-json(get);
+
+# $*ERR.say("random-valid state: { $command<state>.keys.gist }");
+
+if $command<stop> {
+  exit;
+}
+
+my $id = $command<state><punter>;
+my $game = Game.new( state => $command<state> );
+
+my $available-rivers = $game.available-rivers;
+
+
+sub debug($msg) {
+  # $*ERR.say("less-random: $msg");
+  # $*ERR.flush;
+}
+
+my $max-score = -1;
+my $best-river;
+
+# $*ERR.say("Looking for best of 5");
+for $available-rivers.list -> $river {
+  my $river-name = $game.river-name( $river );
+
+  # debug("Marking it claimed");
+  $game.rivers{$river-name}<claim> = $id;
+
+  my $score = 0;
+  # Simulate 10 games for this river
+  for ^10 {
+    my $simulation-scores = simulate($game, $id + 1);
+    my $highest-score = $simulation-scores.map(*<score>).max;
+    if $simulation-scores[$id]<score> == $highest-score {
+      $score++;
+      # $*ERR.say("River $river-name WIN score: $simulation-scores[$id]<score>");
+    } else {
+      # $*ERR.say("River $river-name LOSS score: $simulation-scores[$id]<score>");
+    }
+  }
+
+  # debug("Calculating new score");
+  # my $score = $game.player-score($id);
+  # debug("Checking for improvement");
+  if $score > $max-score {
+    debug("Found new winner! Score: $score, river { $river.gist }");
+    $best-river = $river;
+    $max-score = $score;
+  }
+  # debug("Un-claiming river");
+  $game.rivers{$river-name}<claim>:delete;
+}
+
+# Play randomly for the rest of the game for each player
+# report the scores at the end
+sub simulate($game, $start-player) {
+  my $cur-player = $start-player % $game.punters;
+  my $available-rivers = $game.available-rivers;
+  my @shuffle-rivers = $available-rivers.pick(*).list;
+
+  for @shuffle-rivers -> $river {
+    my $river-name = $game.river-name( $river );
+    $game.rivers{$river-name}<claim> = $cur-player;
+    $cur-player = ($cur-player + 1) % $game.punters;
+  }
+
+  my $score = $game.score;
+
+  # Undo moves
+  for @shuffle-rivers -> $river {
+    my $river-name = $game.river-name( $river );
+    $game.rivers{$river-name}<claim>:delete;
+  }
+
+  return $score;
+}
+
+# my $existing-sites = set();
+
+# for $game.map<mines>.list -> $mine {
+#   # Build up a set of existing sites
+#   $existing-sites (|)= $game.connected-sites($mine, $id);
+# }
+
+# my $connected-rivers = $available-rivers.grep(-> $river {
+#   $river<source> (elem) $existing-sites || $river<desg> (elem) $existing-sites
+# });
+
+# my $max-distance = 0;
+# my $best-river;
+
+# # Figure out distances
+# for $connected-rivers.list -> $river {
+#   for $game.map<mines>.list -> $mine {
+#     $river<distance> += $game.distance($river<source>, $mine);
+#     if $river<distance> > $max-distance {
+#       $max-distance = $river<distance>;
+#       $best-river = $river;
+#     }
+#   }
+# }
+
+# # Fall back to random
+# if ! $best-river {
+#   $*ERR.say("Random fallback");
+# }
+# $best-river ||= $available-rivers.pick;
+
+say to-json({
+  claim => {
+    punter => $id,
+    source => $best-river<source>,
+    target => $best-river<target>
+  },
+  # state => {
+  #   distance => $game.state<distance>
+  # }
+}) :!pretty;
+
+
