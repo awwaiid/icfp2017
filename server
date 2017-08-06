@@ -57,7 +57,7 @@ sub initialize-bots($game, @bots) {
 
 sub play-game(@bots, $game, $outfile, $pause) {
   my @a = ();
-  spurt $outfile, "";
+  spurt $outfile, "" if $outfile;
   # repeat for r turns (number of rivers)
   # keep track of recent move for each player
   # send recent moves to player
@@ -104,9 +104,9 @@ sub play-game(@bots, $game, $outfile, $pause) {
 
     stop-bot($bot-app);
     @a.push: {move => { moves => @last_move.clone }, state => @states[$player_id]}
-    if $pause { say "Press Enter to continue"; $*IN.get; spurt $outfile, (to-json @a, :!pretty) ~ "\n"; }
+    if $pause && $outfile { say "Press Enter to continue"; $*IN.get; spurt $outfile, (to-json @a, :!pretty) ~ "\n"; }
   }
-  spurt $outfile, (to-json @a, :!pretty) ~ "\n";
+  spurt $outfile, (to-json @a, :!pretty) ~ "\n" if $outfile;
 }
 
 sub send-score(@bots, $game) {
