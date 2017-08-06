@@ -1,0 +1,91 @@
+#!/usr/bin/env perl6
+
+use lib 'src';
+use JSON::Fast;
+use Game;
+
+# First ignore the greeting
+my $command = from-json(get);
+
+# $*ERR.say("random-valid state: { $command<state>.keys.gist }");
+
+if $command<stop> {
+  exit;
+}
+
+my $id = $command<state><punter>;
+my $game = Game.new( state => $command<state> );
+
+my $available-rivers = $game.available-rivers;
+
+my $max-score = -1;
+my $best-river;
+
+sub debug($msg) {
+  # $*ERR.say($msg);
+  # $*ERR.flush;
+}
+
+# $*ERR.say("Looking for best of 5");
+for ^5 {
+  debug("Picking a river");
+  my $river = $available-rivers.pick;
+  my $river-name = $game.river-name( $river );
+  debug("Marking it claimed");
+  $game.rivers{$river-name}<claim> = $id;
+  debug("Calculating new score");
+  my $score = $game.player-score($id);
+  debug("Checking for improvement");
+  if $score > $max-score {
+    debug("Found new winner! Score: $score, river { $river.gist }");
+    $best-river = $river;
+    $max-score = $score;
+  }
+  debug("Un-claiming river");
+  $game.rivers{$river-name}<claim>:delete;
+}
+
+
+# my $existing-sites = set();
+
+# for $game.map<mines>.list -> $mine {
+#   # Build up a set of existing sites
+#   $existing-sites (|)= $game.connected-sites($mine, $id);
+# }
+
+# my $connected-rivers = $available-rivers.grep(-> $river {
+#   $river<source> (elem) $existing-sites || $river<desg> (elem) $existing-sites
+# });
+
+# my $max-distance = 0;
+# my $best-river;
+
+# # Figure out distances
+# for $connected-rivers.list -> $river {
+#   for $game.map<mines>.list -> $mine {
+#     $river<distance> += $game.distance($river<source>, $mine);
+#     if $river<distance> > $max-distance {
+#       $max-distance = $river<distance>;
+#       $best-river = $river;
+#     }
+#   }
+# }
+
+# # Fall back to random
+# if ! $best-river {
+#   $*ERR.say("Random fallback");
+# }
+# $best-river ||= $available-rivers.pick;
+
+say to-json({
+  claim => {
+    punter => $id,
+    source => $best-river<source>,
+    target => $best-river<target>
+  },
+  # state => {
+  #   distance => $game.state<distance>
+  # }
+}) :!pretty;
+
+
