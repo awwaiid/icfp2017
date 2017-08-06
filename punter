@@ -2,5 +2,5 @@
 
 export PATH=~/.rakudobrew/bin:$PATH
 
-bots/metabot bots/phpplayer
+bots/metabot 'bots/phpplayer -slongest -d'
 

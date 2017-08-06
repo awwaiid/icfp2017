@@ -10,7 +10,7 @@ multi MAIN($bot) {
 
   # P → S {"me" : name}
   # Tell the server who we are
-  server-send({ me => $bot });
+  server-send({ me => "sideways-spider" });
 
   # S → P {"you" : name}
   server-get;
