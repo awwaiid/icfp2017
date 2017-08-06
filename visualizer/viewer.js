@@ -19,7 +19,7 @@ function getResultFile() {
             $("#arrows").show();
             playerCount = world[0].state.punters;
             lastPunter = world[0].state.punter;
-            lastMoveCount = world[0].state.move_num + 1;
+            lastMoveCount = world[0].state.move_num;
             refreshInfo();
         });
 
@@ -38,22 +38,24 @@ function nextMove() {
 function previousMove () {
     console.log('previous');
     lastMoveCount --;
-    if (lastMoveCount < 1) lastMoveCount = 1;
+    if (lastMoveCount < 0) lastMoveCount = 0;
     refreshInfo();
 }
 
 
 function refreshInfo()
 {
-    console.log(world[lastMoveCount -1]);
-    lastMove = world[lastMoveCount-1].move;
+    console.log(world[lastMoveCount]);
+    lastMove = world[lastMoveCount].move;
+    lastPunter = world[lastMoveCount].state.punter;
+
     $("#gameLoaded").html(gameLoaded ? "IN PROGRESS" : "");
     $("#info-player-count").html(playerCount);
     $("#info-map-name").html(mapName);
     $("#info-move-count").html(lastMoveCount);
-    $("#info-total-move-count").html(world.length);
+    $("#info-total-move-count").html(world.length - 1);
     $("#info-last-punter").html(lastPunter);
-    $("#info-last-move").html(JSON.stringify(world[lastMoveCount -1].move.moves[lastPunter]));
+    $("#info-last-move").html(JSON.stringify(lastMove.moves));
     $("#info-world").html(JSON.stringify(world))
     refreshMap();
 }
@@ -62,13 +64,13 @@ function refreshMap() {
     if (cy.elements !== undefined) {
         cy.destroy();
     }
-    initCy(world[lastMoveCount-1].state.map, function () {
+    initCy(world[lastMoveCount].state.map, function () {
         cy.autolock(true);
         cy.edges().on("select", function(evt) { cy.edges().unselect() } );
     } );
 
     //console.log(world[lastMoveCount - 1 ].state.map);
-    $.each(world[lastMoveCount-1].state.map.rivers, function(index,value) {
+    $.each(world[lastMoveCount].state.map.rivers, function(index,value) {
         if (value.claim !== undefined) {
             console.log(index + "::" + JSON.stringify(value));
             updateEdgeOwner(value.claim, value.source, value.target);

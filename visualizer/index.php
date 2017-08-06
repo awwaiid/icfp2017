@@ -48,7 +48,7 @@ if (isset($_GET['getMap'])) {
               <label>Last Punter</label><div class="info-content" id="info-last-punter">-</div></div>
           <div class="info-sec">
               <label>Last Move</label><div class="info-content" id="info-last-move">-</div></div>
-          <textarea id="info-world"></textarea>
+          <!-- <textarea id="info-world"></textarea> -->
       </fieldset>
     </div>
     <div class="container-fluid">

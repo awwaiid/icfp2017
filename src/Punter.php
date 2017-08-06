@@ -62,6 +62,19 @@ class Punter
         return null;
     }
 
+    public function longest()
+    {
+        $possibleRivers = $this->getMap()->getRivers();
+        $unclaimed = array_filter(
+            function ($river) {
+                return !$river->isClaimed();
+            }
+        );
+        
+        $this->addDebug(count($unclaimed));
+
+    }
+
 
     /**
      * @return Map

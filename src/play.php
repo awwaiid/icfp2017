@@ -7,8 +7,9 @@ include 'Map.php';
 include 'Punter.php';
 
 
-$options = getopt("d");
+$options = getopt("s:d");
 $debug = isset($options['d']);
+$strategy = isset($options['s']) ? $options['s'] : 'random';
 
 debug("START --------------------------------------------");
 /** @noinspection PhpAssignmentInConditionInspection */
@@ -18,7 +19,7 @@ while ($line = trim(fgets(STDIN))) {
     $map = new Map($input['state']);
     $punter = new Punter();
     $punter->setMap($map);
-    $punter->setStrategy('random');
+    $punter->setStrategy($strategy);
     if (!$input || !is_array($input)) {
         die("Bad Json " . json_last_error() . "\n");
     }

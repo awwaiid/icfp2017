@@ -9,7 +9,7 @@ my @last_move;
 my @states;
 
 # Run with a map
-multi MAIN( IO() :map($mapfile) where :e, :out($outfile), *@bots ) {
+multi MAIN( IO() :map($mapfile) where :e, :out($outfile), :$pause=False, *@bots ) {
   my $map = from-json($mapfile.slurp);
   my $player_count = @bots.elems;
   my $game = Game.new(
@@ -17,7 +17,7 @@ multi MAIN( IO() :map($mapfile) where :e, :out($outfile), *@bots ) {
     punters => $player_count
   );
   @states = initialize-bots($game, @bots);
-  play-game(@bots, $game, $outfile);
+  play-game(@bots, $game, $outfile, $pause);
   send-score(@bots, $game);
 }
 
@@ -55,7 +55,7 @@ sub initialize-bots($game, @bots) {
   @states;
 }
 
-sub play-game(@bots, $game, $outfile) {
+sub play-game(@bots, $game, $outfile, $pause) {
   my @a = ();
   spurt $outfile, "";
   # repeat for r turns (number of rivers)
@@ -71,6 +71,7 @@ sub play-game(@bots, $game, $outfile) {
     @last_move[$id] = { pass => { punter => $id } };
   }
 
+  @a.push: {move => { moves => @last_move.clone }, state => @states[0]}
   for ^$river_count -> $move_number {
     my $player_id = $move_number % $player_count; # maybe wrong for zombies
 
@@ -88,12 +89,12 @@ sub play-game(@bots, $game, $outfile) {
       state => @states[$player_id]
     });
 
-    @a.push: {move => { moves => @last_move }, state => @states[$player_id]}
 
     # P → S move ] {"state" : state}
     my $move = client-get($bot-app);
     @states[$player_id] = $move<state> || {};
     $move<state>:delete; # delete the state
+
 
     say "Move $move_number player $player_id action { to-json $move, :!pretty }";
     $game.make-move($player_id, $move);
@@ -102,8 +103,10 @@ sub play-game(@bots, $game, $outfile) {
     @last_move[$player_id] = $move;
 
     stop-bot($bot-app);
+    @a.push: {move => { moves => @last_move.clone }, state => @states[$player_id]}
+    if $pause { say "Press Enter to continue"; $*IN.get; spurt $outfile, (to-json @a, :!pretty) ~ "\n"; }
   }
-  spurt $outfile, (to-json @a, :!pretty) ~ "\n", :append;
+  spurt $outfile, (to-json @a, :!pretty) ~ "\n";
 }
 
 sub send-score(@bots, $game) {
