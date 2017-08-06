@@ -4,32 +4,50 @@ class Game {
   has %.rivers;
   has $.state;
   has $.punters;
-  has $.distances;
+  # has $.distances;
+  has $.sites;
 
   method TWEAK {
 
-    if $.state<map> {
+    if $!state<map> {
       $!map = $.state<map>;
     }
 
-    # $*ERR.say("Map: { $.map.perl }");
-    # $*ERR.say("Rivers: { $.map<rivers>.perl }");
-
     # Initialize a hash of rivers
-    %.rivers = $.map<rivers>.map: -> $river {
-      # $*ERR.say("River: { $river.perl }");
-      self.river-name($river) => $river
+    if $!state<rivers> {
+      %!rivers = $!state<rivers>;
+    } else {
+      %!rivers = $!map<rivers>.map: -> $river {
+        self.river-name($river) => $river
+      }
     }
 
-    if $.state<distances> {
-      $!distances = $.state<distances>;
-      # $*ERR.say("State Distances: { $!distances.gist }");
+    # if $.state<distances> {
+    #   $!distances = $.state<distances>;
+    #   # $*ERR.say("State Distances: { $!distances.gist }");
+    # } else {
+    #   $!distances = $.map<mines>.map( -> $mine {
+    #     $mine => self.all-distance-from($mine)
+    #   }).hash;
+    #   # $*ERR.say("Distances: { $!distances.gist }");
+    #   $!state<distances> = $!distances;
+    # }
+
+    if $!state<sites> {
+      # $*ERR.say("state sites found");
+      $!sites = $!state<sites>;
     } else {
-      $!distances = $.map<mines>.map( -> $mine {
+      # $*ERR.say("state sites NOT found");
+      my $distances = $!map<mines>.map( -> $mine {
         $mine => self.all-distance-from($mine)
       }).hash;
-      # $*ERR.say("Distances: { $!distances.gist }");
-      $!state<distances> = $!distances;
+      for $distances.kv -> $mine, $dist {
+        for $dist.kv -> $site, $d {
+          $!state<sites>{$site}<distance>{$mine} = $d;
+        }
+      }
+      $!sites = $!state<sites>;
+      # $*ERR.say("saving state sites { $!sites.gist }");
     }
   }
 
@@ -61,12 +79,11 @@ class Game {
   method distance($source, $target) {
     # LEAVE { $*ERR.say("distance $source -> $target took { now - ENTER { now } } seconds"); }
     return 0 if $source == $target;
-    if defined $!distances{$source}{$target} {
-      # $*ERR.say("Distance cache hit");
-      return $!distances{$source}{$target};
-    # } else {
-      # $*ERR.say("Distance $source -> $target cache miss");
-      # $*ERR.say("Lookup: {$!distances.gist}");
+    # if defined $!distances{$source}{$target} {
+    #   return $!distances{$source}{$target};
+    # }
+    if defined $!sites{$target}<distance>{$source} {
+      return $!sites{$target}<distance>{$source};
     }
     my $seen = set();
     # Seed with distance 1

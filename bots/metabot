@@ -47,6 +47,7 @@ sub initialize-state($command) {
       map => $map,
       rivers => $game.rivers,
       move_num => $punter,
+      sites => $game.sites,
     }
   });
 
