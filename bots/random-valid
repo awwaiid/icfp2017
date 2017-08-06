@@ -1,6 +1,8 @@
 #!/usr/bin/env perl6
 
+use lib 'src';
 use JSON::Fast;
+use Game;
 
 # First ignore the greeting
 my $command = from-json(get);
@@ -12,16 +14,10 @@ if $command<stop> {
 }
 
 my $id = $command<state><punter>;
+my $game = Game.new( state => $command<state> );
 
-my $rivers = $command<state><rivers>;
-# $*ERR.say("Move num: { $command<state><move_num> }");
-# $*ERR.say("rivers: { $rivers.perl }");
-
-my $available-rivers = $rivers.values.grep({! $^claim<claim>.defined });
-# $*ERR.say("Avail: { $available-rivers.elems }");
-
+my $available-rivers = $game.available-rivers;
 my $river = $available-rivers.pick;
-# $*ERR.say("River: { $river.perl }");
 
 say to-json({
   claim => {
