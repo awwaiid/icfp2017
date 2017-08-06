@@ -11,8 +11,6 @@ class Game {
 
     if $!state<map> {
       $!map = $.state<map>;
-    } else {
-      self.cache-neighbors;
     }
 
     # Initialize a hash of rivers
@@ -36,10 +34,11 @@ class Game {
     # }
 
     if $!state<sites> {
-      # $*ERR.say("state sites found");
       $!sites = $!state<sites>;
     } else {
-      # $*ERR.say("state sites NOT found");
+      # $*ERR.say("Caching neighbors");
+      self.cache-neighbors;
+      $!sites = $!state<sites>;
       my $distances = $!map<mines>.map( -> $mine {
         $mine => self.all-distance-from($mine)
       }).hash;
@@ -74,20 +73,26 @@ class Game {
 
   method get-neighbors($source) {
     # LEAVE { $*ERR.say("get-neighbors $source took { now - ENTER { now } } seconds"); }
+    if $.sites{$source}<neighbors> {
+      # $*ERR.say("get-neighbors cache hit!");
+      return $.sites{$source}<neighbors>;
+    } else {
+      $*ERR.say("get-neighbors $source cache MISS -- { callframe(2).gist }");
+    }
     my @rivers = $.map<rivers>.grep({ $^r<source> == $source || $^r<target> == $source});
     @rivers.map(*<source target>).flat.grep(* != $source).list;
   }
 
   method cache-neighbors {
-    for $.map<rivers>.list -> $river {
-      my @touching-rivers = $.map<rivers>.grep({
-        $^r<source> == $river<source>
-        || $^r<target> == $river<source>
-        || $^r<source> == $river<target>
-        || $^r<target> == $river<target>
-      });
-      my @n = @touching-rivers.map(*<source target>).flat.grep(* != $river).list;
-      $river<neighbors> = @n.sort.unique;
+
+    for $.map<sites>.list -> $site {
+      my $site-id = $site<id>;
+      my @touching-sites = $.map<rivers>.grep({
+        $^r<source> == $site-id
+        || $^r<target> == $site-id
+      }).map( *<source target> ).flat;
+      my @n = @touching-sites.grep( -> $site { $site != $site-id }).list;
+      $!state<sites>{$site-id}<neighbors> = @n.sort.unique;
     }
   }
 
@@ -111,7 +116,7 @@ class Game {
         return $dist;
       }
       my @neighbors = self.get-neighbors($n);
-      my @nnext = @neighbors.map(-> $n { ( $n, $dist + 1 ) }).list;
+      my @nnext = @neighbors.map(-> $nn { ( $nn, $dist + 1 ) }).list;
       @next.push(|@nnext);
     }
     die "Error: no path from $source to $target";
@@ -123,11 +128,14 @@ class Game {
     my $sites = {};
     my @next = @initial_neighbors.map({($_, 1)}).list;
     while @next {
+      # $*ERR.say("Next: { @next.perl }");
       my ($n, $dist) = @next.shift;
+      # $*ERR.say("n: { $n.perl }");
       next if $sites{$n}; # Already seen
       $sites{$n} = $dist;
-      my @neighbors = self.get-neighbors($n);
-      my @nnext = @neighbors.map(-> $n { ( $n, $dist + 1 ) }).list;
+      my @neighbors = self.get-neighbors($n).list;
+      # $*ERR.say("neighbors: { @neighbors.perl }");
+      my @nnext = @neighbors.map(-> $nn { ( $nn, $dist + 1 ) }).list;
       @next.push(|@nnext);
     }
     return $sites;
