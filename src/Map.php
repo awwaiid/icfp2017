@@ -59,6 +59,14 @@ class Map
     }
 
     /**
+     * @return \int[]
+     */
+    public function getMines()
+    {
+        return $this->mines;
+    }
+
+    /**
      * @param array $map
      */
     public function import(array $map)
@@ -237,6 +245,9 @@ class River
         $this->claim = $claim;
     }
 
+    /**
+     * @return string
+     */
     public function prettyPrint()
     {
         $out = "Source: " . $this->getSource() . " Target: " . $this->getTarget();
@@ -245,8 +256,28 @@ class River
         }
         return $out;
     }
-}
 
+    /**
+     * @param River $river
+     * @return bool
+     */
+    public function adjacentTo(River $river)
+    {
+        return $this->getSource() === $river->getSource()
+            || $this->getSource() === $river->getTarget()
+            || $this->getTarget() === $river->getSource()
+            || $this->getTarget() === $river->getTarget();
+    }
+
+    /**
+     * @param int $site
+     * @return bool
+     */
+    public function adjacentToSite($site)
+    {
+        return $this->getSource() === $site || $this->getTarget() === $site;
+    }
+}
 /**
  * Class Site
  * @package Punter

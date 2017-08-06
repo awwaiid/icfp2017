@@ -14,8 +14,9 @@ $strategy = isset($options['s']) ? $options['s'] : 'random';
 debug("START --------------------------------------------");
 /** @noinspection PhpAssignmentInConditionInspection */
 while ($line = trim(fgets(STDIN))) {
-    debug($line);
+    //debug($line);
     $input = json_decode($line, true);
+    debug('MOVE NUM: ' . $input['state']['move_num']);
     $map = new Map($input['state']);
     $punter = new Punter();
     $punter->setMap($map);
