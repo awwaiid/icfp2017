@@ -11,12 +11,16 @@ $options = getopt("s:d");
 $debug = isset($options['d']);
 $strategy = isset($options['s']) ? $options['s'] : 'random';
 
-debug("START --------------------------------------------");
+debug('---------------------------------------------');
+
 /** @noinspection PhpAssignmentInConditionInspection */
 while ($line = trim(fgets(STDIN))) {
     //debug($line);
     $input = json_decode($line, true);
-    debug('MOVE NUM: ' . $input['state']['move_num']);
+    debug(
+        'MOVE NUM: ' . $input['state']['move_num'] . "/" . count($input['state']['rivers'])
+        . " PUNTER: " . $input['state']['punter']
+    );
     $map = new Map($input['state']);
     $punter = new Punter();
     $punter->setMap($map);
@@ -25,7 +29,10 @@ while ($line = trim(fgets(STDIN))) {
         die("Bad Json " . json_last_error() . "\n");
     }
     if (isset($input['stop'])) {
-        debug("Game Over!");
+        if (isset($input['stop']['scores'])) {
+            debug(print_r($input['stop']['scores'], true));
+        }
+        debug("Game Over!\n\n\n");
         exit;
     } elseif (isset($input['move'])) {
         debug("Game In Progress");
@@ -37,7 +44,6 @@ while ($line = trim(fgets(STDIN))) {
     }
 }
 
-debug('--------------------------------------------- DONE');
 
 
 /**

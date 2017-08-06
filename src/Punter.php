@@ -92,7 +92,7 @@ class Punter
                 }
             }
             foreach ($unclaimed as $ur) {
-                $this->addDebug("inspecting unclaimed river " . $ur->prettyPrint());
+                //$this->addDebug("inspecting unclaimed river " . $ur->prettyPrint());
                 if ($ur->adjacentToSite($mine)) {
                     $this->addDebug('found adjacent mine');
                     return $ur;
@@ -101,9 +101,9 @@ class Punter
         }
 
         foreach ($claimed as $cr) {
-            $this->addDebug('inspecting claimed river ' . $cr->prettyPrint());
+            //$this->addDebug('inspecting claimed river ' . $cr->prettyPrint());
             foreach ($unclaimed as $ur) {
-                $this->addDebug("inspecting unclaimed river " . $ur->prettyPrint());
+                //$this->addDebug("inspecting unclaimed river " . $ur->prettyPrint());
                 if ($cr->adjacentTo($ur)) {
                     $this->addDebug('Found Adjacent');
                     return $ur;
@@ -121,39 +121,30 @@ class Punter
      */
     public function longest()
     {
+        //separate list of claimed vs unclaimed out of
         $possibleRivers = $this->getMap()->getRivers();
-        $this->addDebug("River Count " . count($possibleRivers));
-        $claimed = $unclaimed = [];
-        $this->addDebug('Finding for punter ' . $this->getMap()->getPunter());
+        $claimed = $taken = $unclaimed = [];
         foreach ($possibleRivers as $possible) {
             if ($possible->isClaimed()) {
                 if ($possible->getClaim() == $this->getMap()->getPunter()) {
                     $claimed [] = $possible;
+                } elseif ($possible->getClaim() !== null) {
+                    $taken [] = $possible;
                 }
             } else {
                 $unclaimed [] = $possible;
             }
         }
-
-        // eliminate unclaimed rivers where we have already visited both sites.
-        $sites = [];
-        foreach ($claimed as $c) {
-            $sites [] = $c->getTarget();
-            $sites [] = $c->getSource();
-        }
-        $sites = array_unique($sites);
-        foreach ($unclaimed as $key => $u) {
-            if (in_array($u->getTarget(), $sites) && in_array($u->getSource(), $sites)) {
-                unset($unclaimed[$key]);
-            }
-        }
+        $this->addDebug(
+            "Claimed: " . count($claimed) . " Unclaimed: " . count($unclaimed) . " Taken: " . count($taken)
+        );
 
         if (empty($claimed)) {
             $this->addDebug('No Claimed Yet .. lets get a mine');
             foreach ($this->getMap()->getMines() as $mine) {
                 $this->addDebug('Checking out mine ' . $mine);
                 foreach ($unclaimed as $ur) {
-                    $this->addDebug("inspecting unclaimed river " . $ur->prettyPrint());
+                    //$this->addDebug("inspecting unclaimed river " . $ur->prettyPrint());
                     if ($ur->adjacentToSite($mine)) {
                         $this->addDebug('found adjacent mine');
                         return $ur;
@@ -162,9 +153,30 @@ class Punter
             }
         }
 
+        // eliminate unclaimed rivers where we have already visited both sites.
+        $sites = $claimedMines = [];
+        foreach ($claimed as $c) {
+            $sites [] = $c->getTarget();
+            $sites [] = $c->getSource();
+        }
+        $sites = array_unique($sites);
+        foreach ($sites as $s) {
+            foreach ($this->getMap()->getMines() as $m) {
+                if ($s == $m) {
+                    $claimedMines [] = $m;
+                }
+            }
+        }
+        $this->addDebug('Claimed Mines: ' . count($claimedMines));
+        foreach ($unclaimed as $key => $u) {
+            if (in_array($u->getTarget(), $sites) && in_array($u->getSource(), $sites)) {
+                unset($unclaimed[$key]);
+            }
+        }
+
         // get longest chain
         $chains = [];
-        $this->addDebug('finding longest chain');
+        $this->addDebug('finding longest chain... ');
         foreach ($claimed as $key => $claim) {
             foreach ($chains as $k => $chain) {
                 foreach ($chain as $c) {
@@ -175,34 +187,53 @@ class Punter
                     }
                 }
             }
-
             $chains [] = [$claim];
         }
         $this->addDebug('chain count: ' . count($chains));
+        // sort by longest
         usort(
             $chains,
             function ($a, $b) {
-                return (count($a) > count($b)) ? 1 : -1;
+                return (count($a) < count($b)) ? 1 : -1;
             }
         );
 
         $this->addDebug("longest chain is " . (count($chains) ? count($chains[0]) : 0));
         $this->addDebug("unclaimed count " . count($unclaimed));
 
+        $possibilities = [];
         foreach ($chains as $c) {
             foreach ($c as $r) {
                 foreach ($unclaimed as $u) {
                     if ($u->adjacentTo($r)) {
-                        return $u;
+                        $possibilities[] = $u;
                     }
                 }
             }
+            if (count($possibilities)) {
+                $this->addDebug("Continuing Chain: " . print_r($possibilities, true));
+                break;
+            }
+        }
+        $greatestDistance = 0;
+        $bestMove = null;
+        if (count($possibilities)) {
+            foreach ($possibilities as $p) {
+                foreach ($claimedMines as $m) {
+                    $distance = $this->getMap()->getSiteDistance($p->getSource(), $m);
+                    if ($distance > $greatestDistance) {
+                        $greatestDistance = $distance;
+                        $bestMove = $p;
+                    }
+                }
+            }
+            return $bestMove ?: $possibilities[array_rand($possibilities)];
         }
 
         foreach ($claimed as $cr) {
             $this->addDebug('inspecting claimed river ' . $cr->prettyPrint());
             foreach ($unclaimed as $ur) {
-                $this->addDebug("inspecting unclaimed river " . $ur->prettyPrint());
+                //$this->addDebug("inspecting unclaimed river " . $ur->prettyPrint());
                 if ($cr->adjacentTo($ur)) {
                     $this->addDebug('Found Adjacent');
                     return $ur;
