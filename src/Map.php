@@ -44,6 +44,11 @@ class Map
     private $claimedRivers = [];
 
     /**
+     * @var array
+     */
+    private $distances = [];
+
+    /**
      * Map constructor.
      * @param array $world
      */
@@ -56,6 +61,27 @@ class Map
         foreach ($world['rivers'] as $key => $rc) {
             $this->claimedRivers[$key] = new River($rc);
         }
+        $this->distances = $world['sites'];
+    }
+
+    /**
+     * @return array
+     */
+    public function getDistances()
+    {
+        return $this->distances;
+    }
+
+    /**
+     * @param int $site
+     * @param int $mine
+     * @return int
+     */
+    public function getSiteDistance($site, $mine)
+    {
+        return isset($this->getDistances()[$site]['distance'][$mine])
+            ? $this->getDistances()[$site]['distance'][$mine]
+            : 0;
     }
 
     /**
@@ -72,7 +98,7 @@ class Map
     public function import(array $map)
     {
         foreach ($map['sites'] as $site) {
-            $this->sites[] = new Site($site['id'], $site['x'], $site['y']);
+            $this->sites[$site['id']] = new Site($site['id'], $site['x'], $site['y']);
         }
         foreach ($map['rivers'] as $river) {
             $this->rivers[] = new River($river);
