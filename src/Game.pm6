@@ -11,8 +11,12 @@ class Game {
       $!map = $.state<map>;
     }
 
+    # $*ERR.say("Map: { $.map.perl }");
+    # $*ERR.say("Rivers: { $.map<rivers>.perl }");
+
     # Initialize a hash of rivers
     %.rivers = $.map<rivers>.map: -> $river {
+      # $*ERR.say("River: { $river.perl }");
       river-name($river) => $river
     }
 
@@ -28,9 +32,9 @@ class Game {
       }
       my $river = river-name($move<claim>);
       if ! %.rivers{$river} {
-        $*ERR.say("WARN: River '$river' doesn't exist");
+        # $*ERR.say("WARN: River '$river' doesn't exist");
       } elsif defined %.rivers{$river}<claim> {
-        $*ERR.say("WARN: $river is already taken!");
+        # $*ERR.say("WARN: $river is already taken!");
       } else {
         %.rivers{$river}<claim> = $player;
       }
@@ -70,23 +74,43 @@ class Game {
     $*ERR.say("}");
   }
 
-  method connected-sites($from, $id, $seen = Set.new) {
+  method connected-sites($from, $id) {
 
-    my $neighbors = Set.new(self.get-neighbors($from));
-    # $*ERR.say("Neighbors: { $neighbors.perl }");
-    $neighbors = $neighbors (-) $seen;
-    # $*ERR.say("Filtered neighbors: { $neighbors.perl }");
+    my $seen = set $from;
+    my @sites = $from;
 
-    my @my-neighbors = $neighbors.keys.grep(-> $dest {
-      # $*ERR.say("looking up river name $from -> $dest");
-      my $river_name = river-name( {source => $from, target => $dest} );
-      # $*ERR.say("river name $from -> $dest is $river_name");
-      $.rivers{$river_name}<claim>.defined && $.rivers{$river_name}<claim> == $id
-    });
+    while @sites {
+      my $current = @sites.shift;
+      my $neighbors = self.get-neighbors($current);
+      $neighbors = $neighbors (-) $seen;
+      for $neighbors.keys -> $dest {
+        my $river_name = river-name( {source => $current, target => $dest} );
+        if $.rivers{$river_name}<claim>.defined && $.rivers{$river_name}<claim> == $id {
+          # This one is good to follow
+          @sites.push($dest);
+          $seen (|)= ($dest);
+        }
+      }
+    }
 
-    # $*ERR.say("Connected rivers from $from by $id: { @my-neighbors.perl }");
+    $seen (-)= $from; # Don't count the original
+    $seen.keys;
+  }
 
-    return @my-neighbors;
+
+    # my $neighbors = Set.new(self.get-neighbors($from));
+    # # $*ERR.say("Neighbors: { $neighbors.perl }");
+    # $neighbors = $neighbors (-) $seen;
+    # # $*ERR.say("Filtered neighbors: { $neighbors.perl }");
+
+    # my @my-neighbors = $neighbors.keys.grep(-> $dest {
+    #   $*ERR.say("looking up river name $from -> $dest");
+    #   my $river_name = river-name( {source => $from, target => $dest} );
+    #   $*ERR.say("river name $from -> $dest is $river_name");
+    #   $.rivers{$river_name}<claim>.defined && $.rivers{$river_name}<claim> == $id
+    # });
+
+
 
     # my $all-seen = $seen (+) Set.new(|@my-neighbors);
     # my @my-connected = @my-neighbors.map( -> $n {
@@ -94,7 +118,11 @@ class Game {
     # }).flat;
 
     # return @my-connected;
-  }
+
+    # $*ERR.say("Connected rivers from $from by $id: { @my-neighbors.perl }");
+
+    # return @my-neighbors;
+  # }
 
   method score {
     # self.graphviz;
@@ -102,6 +130,7 @@ class Game {
     my @player-score = (^$.punters).map: -> $id {
       { punter => $id, score => 0 }
     };
+
     # $*ERR.say("scores: { @player-score.perl }");
 
     for $.map<mines>.list -> $mine {
@@ -126,6 +155,7 @@ class Game {
   }
 
   sub river-name($river) {
+    # $*ERR.say("Building river: { $river.perl }");
     ($river<source>, $river<target>).sort.join('-');
   }
 }
