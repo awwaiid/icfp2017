@@ -4,6 +4,7 @@ class Game {
   has %.rivers;
   has $.state;
   has $.punters;
+  has $.distances;
 
   method TWEAK {
 
@@ -17,9 +18,19 @@ class Game {
     # Initialize a hash of rivers
     %.rivers = $.map<rivers>.map: -> $river {
       # $*ERR.say("River: { $river.perl }");
-      river-name($river) => $river
+      self.river-name($river) => $river
     }
 
+    if $.state<distances> {
+      $!distances = $.state<distances>;
+      # $*ERR.say("State Distances: { $!distances.gist }");
+    } else {
+      $!distances = $.map<mines>.map( -> $mine {
+        $mine => self.all-distance-from($mine)
+      }).hash;
+      # $*ERR.say("Distances: { $!distances.gist }");
+      $!state<distances> = $!distances;
+    }
   }
 
   # {"claim" : {"punter" : PunterId, "source" : SiteId, "target" : SiteId}}
@@ -30,7 +41,7 @@ class Game {
       if $player !== $move<claim><punter> {
         die "Move and player don't match!";
       }
-      my $river = river-name($move<claim>);
+      my $river = self.river-name($move<claim>);
       if ! %.rivers{$river} {
         # $*ERR.say("WARN: River '$river' doesn't exist");
       } elsif defined %.rivers{$river}<claim> {
@@ -42,28 +53,52 @@ class Game {
   }
 
   method get-neighbors($source) {
+    # LEAVE { $*ERR.say("get-neighbors $source took { now - ENTER { now } } seconds"); }
     my @rivers = $.map<rivers>.grep({ $^r<source> == $source || $^r<target> == $source});
     @rivers.map(*<source target>).flat.grep(* != $source).list;
   }
 
   method distance($source, $target) {
-    # TODO: Memoize
+    # LEAVE { $*ERR.say("distance $source -> $target took { now - ENTER { now } } seconds"); }
     return 0 if $source == $target;
-    my %seen = ();
-    # $*ERR.say("Neighbors of $source: { self.get-neighbors($source).perl }");
+    if defined $!distances{$source}{$target} {
+      # $*ERR.say("Distance cache hit");
+      return $!distances{$source}{$target};
+    # } else {
+      # $*ERR.say("Distance $source -> $target cache miss");
+      # $*ERR.say("Lookup: {$!distances.gist}");
+    }
+    my $seen = set();
+    # Seed with distance 1
     my @next = self.get-neighbors($source).map({($_, 1)}).list;
-    # $*ERR.say("queue: { @next.perl }");
     while @next {
       my ($n, $dist) = @next.shift;
-      return $dist if $n == $target;
-      # $*ERR.say("checking $n $dist");
+      next if $n (elem) $seen;
+      $seen (|)= $n;
+      if $n == $target {
+        return $dist;
+      }
       my @neighbors = self.get-neighbors($n);
-      # $*ERR.say("Neighbors of $n: { @neighbors.perl }");
       my @nnext = @neighbors.map(-> $n { ( $n, $dist + 1 ) }).list;
-      # $*ERR.say("Pushing { @nnext.perl }");
       @next.push(|@nnext);
     }
     die "Error: no path from $source to $target";
+  }
+
+  method all-distance-from($source) {
+    # LEAVE { $*ERR.say("distance $source took { now - ENTER { now } } seconds"); }
+    my @initial_neighbors = self.get-neighbors($source).list;
+    my $sites = {};
+    my @next = @initial_neighbors.map({($_, 1)}).list;
+    while @next {
+      my ($n, $dist) = @next.shift;
+      next if $sites{$n}; # Already seen
+      $sites{$n} = $dist;
+      my @neighbors = self.get-neighbors($n);
+      my @nnext = @neighbors.map(-> $n { ( $n, $dist + 1 ) }).list;
+      @next.push(|@nnext);
+    }
+    return $sites;
   }
 
   method graphviz {
@@ -75,6 +110,7 @@ class Game {
   }
 
   method connected-sites($from, $id) {
+    # LEAVE { $*ERR.say("connected-sites took { now - ENTER { now } } seconds"); }
 
     my $seen = set $from;
     my @sites = $from;
@@ -84,7 +120,7 @@ class Game {
       my $neighbors = self.get-neighbors($current);
       $neighbors = $neighbors (-) $seen;
       for $neighbors.keys -> $dest {
-        my $river_name = river-name( {source => $current, target => $dest} );
+        my $river_name = self.river-name( {source => $current, target => $dest} );
         if $.rivers{$river_name}<claim>.defined && $.rivers{$river_name}<claim> == $id {
           # This one is good to follow
           @sites.push($dest);
@@ -94,67 +130,41 @@ class Game {
     }
 
     $seen (-)= $from; # Don't count the original
+
     $seen.keys;
   }
 
-
-    # my $neighbors = Set.new(self.get-neighbors($from));
-    # # $*ERR.say("Neighbors: { $neighbors.perl }");
-    # $neighbors = $neighbors (-) $seen;
-    # # $*ERR.say("Filtered neighbors: { $neighbors.perl }");
-
-    # my @my-neighbors = $neighbors.keys.grep(-> $dest {
-    #   $*ERR.say("looking up river name $from -> $dest");
-    #   my $river_name = river-name( {source => $from, target => $dest} );
-    #   $*ERR.say("river name $from -> $dest is $river_name");
-    #   $.rivers{$river_name}<claim>.defined && $.rivers{$river_name}<claim> == $id
-    # });
-
-
-
-    # my $all-seen = $seen (+) Set.new(|@my-neighbors);
-    # my @my-connected = @my-neighbors.map( -> $n {
-    #   self.connected-sites($n, $id, $all-seen)
-    # }).flat;
-
-    # return @my-connected;
-
-    # $*ERR.say("Connected rivers from $from by $id: { @my-neighbors.perl }");
-
-    # return @my-neighbors;
-  # }
-
   method score {
-    # self.graphviz;
-
     my @player-score = (^$.punters).map: -> $id {
       { punter => $id, score => 0 }
     };
 
-    # $*ERR.say("scores: { @player-score.perl }");
-
-    for $.map<mines>.list -> $mine {
-      for ^$.punters -> $id {
-        # $*ERR.say("Calculating score for mine $mine player $id");
-
-        my @mine-player-sites = self.connected-sites($mine, $id);
-        # $*ERR.say("sites: { @mine-player-sites.perl }");
-
-        my @distances = @mine-player-sites.map(-> $site {
-          self.distance($mine, $site)
-        });
-        my $mine-player-score = [+] @distances.map(* ** 2);
-        # $*ERR.say("mine-player-score: $mine-player-score");
-        @player-score[$id]<score> += $mine-player-score;
-      }
+    for ^$.punters -> $id {
+      @player-score[$id]<score> = self.player-score($id);
     }
-    # $*ERR.say("scores: { @player-score.perl }");
-
 
     return @player-score;
   }
 
-  sub river-name($river) {
+  method player-score($id) {
+    my $score = 0;
+    for $.map<mines>.list -> $mine {
+      my @mine-player-sites = self.connected-sites($mine, $id);
+      my @distances = @mine-player-sites.map(-> $site {
+        self.distance($mine, $site)
+      });
+      my $mine-player-score = [+] @distances.map(* ** 2);
+      $score += $mine-player-score;
+    }
+    return $score;
+  }
+
+  method available-rivers {
+    my $rivers = $.state<rivers>;
+    $rivers.values.grep({! $^claim<claim>.defined }).list;
+  }
+
+  method river-name($river) {
     # $*ERR.say("Building river: { $river.perl }");
     ($river<source>, $river<target>).sort.join('-');
   }
