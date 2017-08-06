@@ -37,7 +37,7 @@ sub initialize-state($command) {
   my $map = $command<map>;
   my $punter = $command<punter>;
   my $punters = $command<punters>;
-  my $game = Game.new(map => $map);
+  my $game = Game.new( map => $map, punters => $punters );
 
   server-send({
     ready => $punter,
@@ -66,6 +66,8 @@ sub get-move($bot, $command) {
   }
 
   $command<state><rivers> = $game.rivers;
+  $command<scores> = $game.score;
+  $*ERR.say("Scores: { $command<scores>.gist }");
 
   my $bot-app = start-bot($bot);
   bot-send($bot-app, $command);

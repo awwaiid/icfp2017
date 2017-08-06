@@ -13,6 +13,10 @@ class Game {
       $!map = $.state<map>;
     }
 
+    if $!state<punters> {
+      $!punters = $!state<punters>;
+    }
+
     # Initialize a hash of rivers
     # if $!state<rivers> {
     #   %.rivers = $!state<rivers>;
