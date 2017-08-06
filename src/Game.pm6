@@ -11,16 +11,18 @@ class Game {
 
     if $!state<map> {
       $!map = $.state<map>;
+    } else {
+      self.cache-neighbors;
     }
 
     # Initialize a hash of rivers
-    if $!state<rivers> {
-      %!rivers = $!state<rivers>;
-    } else {
-      %!rivers = $!map<rivers>.map: -> $river {
+    # if $!state<rivers> {
+    #   %.rivers = $!state<rivers>;
+    # } else {
+      %.rivers = $!map<rivers>.map: -> $river {
         self.river-name($river) => $river
       }
-    }
+    # }
 
     # if $.state<distances> {
     #   $!distances = $.state<distances>;
@@ -74,6 +76,19 @@ class Game {
     # LEAVE { $*ERR.say("get-neighbors $source took { now - ENTER { now } } seconds"); }
     my @rivers = $.map<rivers>.grep({ $^r<source> == $source || $^r<target> == $source});
     @rivers.map(*<source target>).flat.grep(* != $source).list;
+  }
+
+  method cache-neighbors {
+    for $.map<rivers>.list -> $river {
+      my @touching-rivers = $.map<rivers>.grep({
+        $^r<source> == $river<source>
+        || $^r<target> == $river<source>
+        || $^r<source> == $river<target>
+        || $^r<target> == $river<target>
+      });
+      my @n = @touching-rivers.map(*<source target>).flat.grep(* != $river).list;
+      $river<neighbors> = @n.sort.unique;
+    }
   }
 
   method distance($source, $target) {
