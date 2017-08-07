@@ -22,8 +22,8 @@ my $max-score = -1;
 my $best-river;
 
 sub debug($msg) {
-  $*ERR.say("less-random: $msg");
-  $*ERR.flush;
+  # $*ERR.say("less-random: $msg");
+  # $*ERR.flush;
 }
 
 my $seen = set();
